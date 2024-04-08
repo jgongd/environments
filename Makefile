@@ -180,13 +180,13 @@ build-gpu-cuda-118-base:
 
 NGC_PYTORCH_PREFIX := nvcr.io/nvidia/pytorch
 NGC_TENSORFLOW_PREFIX := nvcr.io/nvidia/tensorflow
-NGC_PYTORCH_VERSION := 23.12-py3
-NGC_TENSORFLOW_VERSION := 23.12-tf2-py3
+NGC_PYTORCH_VERSION := 24.03-py3
+NGC_TENSORFLOW_VERSION := 24.03-tf2-py3
 
 # build hpc together since hpc is dependent on the normal build
 .PHONY: build-pytorch-ngc
 build-pytorch-ngc:
-	docker build -f Dockerfile-pytorch-ngc \
+	docker build --progress=plain -f Dockerfile-pytorch-ngc \
 		--build-arg BASE_IMAGE="$(NGC_PYTORCH_PREFIX):$(NGC_PYTORCH_VERSION)" \
 		-t $(DOCKERHUB_REGISTRY)/pytorch-ngc:$(SHORT_GIT_HASH) \
 		.
