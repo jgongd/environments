@@ -186,25 +186,35 @@ NGC_TENSORFLOW_VERSION := 23.12-tf2-py3
 # build hpc together since hpc is dependent on the normal build
 .PHONY: build-pytorch-ngc
 build-pytorch-ngc:
-	docker build -f Dockerfile-pytorch-ngc \
+	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	docker buildx create --name builder --driver docker-container --use
+	docker buildx build -f Dockerfile-pytorch-ngc \
+		--platform "linux/arm64" \
 		--build-arg BASE_IMAGE="$(NGC_PYTORCH_PREFIX):$(NGC_PYTORCH_VERSION)" \
-		-t $(DOCKERHUB_REGISTRY)/pytorch-ngc:$(SHORT_GIT_HASH) \
+		-t jgongd/myrepo:pytorch-ngc-$(SHORT_GIT_HASH) \
 		.
-	docker build -f Dockerfile-ngc-hpc \
-		--build-arg BASE_IMAGE="$(DOCKERHUB_REGISTRY)/pytorch-ngc:$(SHORT_GIT_HASH)" \
-		-t $(DOCKERHUB_REGISTRY)/pytorch-ngc-hpc:$(SHORT_GIT_HASH) \
-		.
+	# docker build -f Dockerfile-ngc-hpc \
+	# 	--build-arg BASE_IMAGE="$(DOCKERHUB_REGISTRY)/pytorch-ngc:$(SHORT_GIT_HASH)" \
+	# 	-t $(DOCKERHUB_REGISTRY)/pytorch-ngc-hpc:$(SHORT_GIT_HASH) \
+	# 	.
 
 .PHONY: build-tensorflow-ngc
 build-tensorflow-ngc:
-	docker build -f Dockerfile-tensorflow-ngc \
+	# Binding QEMU to docker allows emulating other architectures.
+	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	# The docker-container driver supports using QEMU (user mode) to build non-native platforms.
+	# The Docker container driver allows creation of a managed and customizable BuildKit environment in a dedicated Docker container.
+	docker buildx create --name builder --driver docker-container --use
+	docker buildx build -f Dockerfile-tensorflow-ngc \
+		--platform "$(PLATFORMS)" \
 		--build-arg BASE_IMAGE="$(NGC_TENSORFLOW_PREFIX):$(NGC_TENSORFLOW_VERSION)" \
-		-t $(DOCKERHUB_REGISTRY)/tensorflow-ngc:$(SHORT_GIT_HASH) \
+		-t jgongd/myrepo:tensorflow-ngc-$(SHORT_GIT_HASH) \
+		--push \
 		.
-	docker build -f Dockerfile-ngc-hpc \
-		--build-arg BASE_IMAGE="$(DOCKERHUB_REGISTRY)/tensorflow-ngc:$(SHORT_GIT_HASH)" \
-		-t $(DOCKERHUB_REGISTRY)/tensorflow-ngc-hpc:$(SHORT_GIT_HASH) \
-		.
+	# docker build -f Dockerfile-ngc-hpc \
+	# 	--build-arg BASE_IMAGE="$(DOCKERHUB_REGISTRY)/tensorflow-ngc:$(SHORT_GIT_HASH)" \
+	# 	-t $(DOCKERHUB_REGISTRY)/tensorflow-ngc-hpc:$(SHORT_GIT_HASH) \
+	# 	.
 
 ifeq ($(WITH_MPICH),1)
 ROCM56_TORCH13_MPI :=pytorch-1.3-tf-2.10-rocm-mpich
